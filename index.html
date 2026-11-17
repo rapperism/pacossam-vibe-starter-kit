@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>내 구독료 계산기</title>
+  <meta name="description" content="매달 빠져나가는 구독료를 한 화면에서 확인하는 무료 웹앱. 로그인 없이 브라우저에만 저장됩니다.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231E3A5F'/><text x='50' y='70' font-size='56' font-family='sans-serif' fill='white' text-anchor='middle' font-weight='bold'>₩</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">₩</span>
+        <div>
+          <h1 class="brand-name">내 구독료 계산기</h1>
+          <p class="brand-sub">매달 빠져나가는 구독료, 한 화면에서</p>
+        </div>
+      </div>
+      <button type="button" id="btn-manage" class="btn btn-ghost" aria-label="데이터 관리 열기">관리</button>
+    </header>
+
+    <!-- ===== 목록 화면 ===== -->
+    <main id="view-list" class="view">
+      <section class="summary" aria-label="이번 달 요약">
+        <div class="summary-main">
+          <p class="summary-label">한 달 구독료</p>
+          <p class="summary-total" id="total-monthly">0원</p>
+          <p class="summary-note" id="summary-count">등록된 구독 0개</p>
+        </div>
+        <dl class="summary-grid">
+          <div class="summary-cell">
+            <dt>1년 예상 지출</dt>
+            <dd id="total-yearly">0원</dd>
+          </div>
+          <div class="summary-cell">
+            <dt>가장 비싼 구독</dt>
+            <dd id="top-service">-</dd>
+          </div>
+          <div class="summary-cell">
+            <dt>이번 달 남은 결제</dt>
+            <dd id="remaining-this-month">0원</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="card" id="category-card" aria-label="카테고리별 비중">
+        <div class="card-head">
+          <h2>카테고리별 비중</h2>
+          <p class="card-sub">한 달 구독료를 카테고리로 나눈 비율</p>
+        </div>
+        <ul class="bars" id="category-bars"></ul>
+      </section>
+
+      <section class="card" aria-label="구독 목록">
+        <div class="card-head list-head">
+          <div>
+            <h2>구독 목록</h2>
+            <p class="card-sub" id="list-count">0개</p>
+          </div>
+          <label class="sort-wrap">
+            <span class="visually-hidden">정렬 기준</span>
+            <select id="sort-select" class="select">
+              <option value="day">결제일 순</option>
+              <option value="amount">금액 높은 순</option>
+              <option value="name">이름 순</option>
+            </select>
+          </label>
+        </div>
+        <div class="chips" id="filter-chips" role="group" aria-label="카테고리 필터"></div>
+        <ul class="list" id="list"></ul>
+        <div class="empty" id="empty-state" hidden>
+          <p class="empty-title">아직 등록한 구독이 없어요</p>
+          <p class="empty-text">넷플릭스, 멜론, 챗지피티처럼 매달 나가는 것부터 하나씩 넣어 보세요.</p>
+          <div class="empty-actions">
+            <button type="button" class="btn btn-primary" id="btn-add-empty">구독 추가하기</button>
+            <button type="button" class="btn btn-outline" id="btn-sample-empty">샘플로 먼저 보기</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ===== 입력 화면 ===== -->
+    <main id="view-form" class="view" hidden>
+      <div class="form-head">
+        <button type="button" id="btn-cancel" class="btn btn-ghost">← 취소</button>
+        <h2 id="form-title">구독 추가</h2>
+        <span></span>
+      </div>
+
+      <form id="sub-form" class="card form" novalidate>
+        <div class="field">
+          <label for="f-name">서비스명</label>
+          <input id="f-name" name="name" type="text" placeholder="예: 넷플릭스" autocomplete="off" maxlength="30">
+          <p class="error" id="e-name" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="f-amount">금액</label>
+          <div class="amount-wrap">
+            <input id="f-amount" name="amount" type="text" inputmode="numeric" placeholder="예: 13500" autocomplete="off">
+            <span class="amount-unit">원</span>
+          </div>
+          <p class="hint">숫자만 입력하세요. 1년 결제라면 1년치 금액을 넣습니다.</p>
+          <p class="error" id="e-amount" hidden></p>
+        </div>
+
+        <div class="field">
+          <span class="label">결제 주기</span>
+          <div class="segmented" role="radiogroup" aria-label="결제 주기">
+            <label class="segment">
+              <input type="radio" name="cycle" value="month" checked>
+              <span>매달 결제</span>
+            </label>
+            <label class="segment">
+              <input type="radio" name="cycle" value="year">
+              <span>1년에 한 번</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-category">카테고리</label>
+          <select id="f-category" name="category" class="select select-block">
+            <option value="영상">영상·OTT</option>
+            <option value="음악">음악</option>
+            <option value="AI·생산성">AI·생산성</option>
+            <option value="클라우드">클라우드·저장</option>
+            <option value="쇼핑·멤버십">쇼핑·멤버십</option>
+            <option value="교육">교육</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="f-day">결제일</label>
+          <input id="f-day" name="day" type="text" inputmode="numeric" placeholder="1~31 사이 숫자" autocomplete="off">
+          <p class="hint">매달 돈이 빠져나가는 날짜입니다.</p>
+          <p class="error" id="e-day" hidden></p>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" id="btn-cancel-2">취소</button>
+          <button type="submit" class="btn btn-primary" id="btn-save">저장</button>
+        </div>
+      </form>
+    </main>
+
+    <button type="button" class="fab" id="btn-add" aria-label="구독 추가">
+      <span aria-hidden="true">+</span> 구독 추가
+    </button>
+  </div>
+
+  <!-- ===== 관리(백업) 모달 ===== -->
+  <div class="modal-backdrop" id="modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head">
+        <h2 id="modal-title">데이터 관리</h2>
+        <button type="button" class="modal-close" id="btn-modal-close" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-lead">구독 목록은 이 브라우저에만 저장됩니다. 기기를 바꾸거나 브라우저를 정리하기 전에 백업해 두세요.</p>
+
+      <ul class="manage-list">
+        <li>
+          <div>
+            <p class="manage-title">백업 파일 내려받기 (JSON)</p>
+            <p class="manage-desc">지금 목록을 파일로 저장합니다.</p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-export">내보내기</button>
+        </li>
+        <li>
+          <div>
+            <p class="manage-title">백업 파일 불러오기</p>
+            <p class="manage-desc">저장해 둔 JSON 파일로 목록을 되살립니다.</p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-import">가져오기</button>
+          <input type="file" id="file-input" accept="application/json,.json" hidden>
+        </li>
+        <li>
+          <div>
+            <p class="manage-title">샘플 데이터 넣어 보기</p>
+            <p class="manage-desc">구독 6개가 미리 채워집니다. 지금 목록은 덮어씁니다.</p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-sample">샘플</button>
+        </li>
+        <li>
+          <div>
+            <p class="manage-title">전부 지우기</p>
+            <p class="manage-desc">저장된 구독을 모두 삭제합니다.</p>
+          </div>
+          <button type="button" class="btn btn-danger-ghost btn-sm" id="btn-reset">초기화</button>
+        </li>
+      </ul>
+
+      <p class="modal-foot" id="storage-note">자동 저장 켜짐 · 마지막 저장 방금 전</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
